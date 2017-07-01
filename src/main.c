@@ -1,6 +1,11 @@
 #include <clanguml/clanguml.h>
+#include <clang-c/CXCompilationDatabase.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <limits.h>
+#include <stdlib.h>
+#include <malloc.h>
+#include <string.h>
 
 struct uml_context
 {
@@ -108,6 +113,22 @@ int main(int argc, char* argv[])
         fprintf(stderr,"Please pass a filename to parse\n");
         return -1;
     }
+
+
+    CXCompilationDatabase compilationDB;
+    CXCompilationDatabase_Error err;
+    char* path = getcwd(NULL,0);
+    compilationDB = clang_CompilationDatabase_fromDirectory(path, &err);
+    while (err == CXCompilationDatabase_CanNotLoadDatabase)
+    {
+        char* strPtr = strrchr(path,'/');
+        if (!strPtr)
+            break;
+        *strPtr = '\0';
+        compilationDB = clang_CompilationDatabase_fromDirectory(path, &err);
+    }
+    free(path);
+
     struct uml_context ctx;
     ctx.fd = stdout;
     ClangUML_t uml = ClangUML_new(packageBegin, packageEnd, classBegin,classEnd,methodEnter, methodLeave, field, relationship);
@@ -115,7 +136,31 @@ int main(int argc, char* argv[])
     fprintf(ctx.fd,"@startuml\n");
     for (i = optind; i < argc; ++i)
     {
-        CXTranslationUnit tu = clang_parseTranslationUnit(index, argv[i], NULL, 0, NULL, 0, CXTranslationUnit_None);
+        char* resolvedPath = realpath(argv[i],NULL);
+        CXCompileCommands compileCommands = clang_CompilationDatabase_getCompileCommands(compilationDB, resolvedPath);
+        unsigned int numArgs = clang_CompileCommands_getSize(compileCommands);
+        char** arguments = NULL;
+        if (numArgs)
+        {
+            int j;
+            arguments = (char**)malloc(sizeof(char*) * numArgs);
+            for (j = 0; j < numArgs; ++j)
+            {
+                CXString arg = clang_CompileCommand_getArg( compileCommands, j );
+                arguments[j] = strdup(clang_getCString(arg));
+                clang_disposeString(arg);
+            }
+        }
+        CXTranslationUnit tu = clang_parseTranslationUnit(index, argv[i], (const char * const*)arguments, numArgs, NULL, 0, CXTranslationUnit_None);
+        if (numArgs)
+        {
+            int j;
+            for (j = 0; j < numArgs; ++j)
+            {
+               free(arguments[j]);
+            }
+            free(arguments);
+        }
 	if (!tu)
             fprintf(stderr,"Unable to parse %s\n",argv[i]);
         else

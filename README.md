@@ -21,6 +21,5 @@ Author: Yves De Muyter (yves@alfavisio.be)
 - Custom storage types that should be treated as list or pointer
 - Command line arguments to include or filter out classes
 - Command line arguments to enable/disable various options like arrow direction, namespaces
-- Add support for "compile_commands.json"
 - Find some nice way to integrate with PlantUML. I currently use its watchfolder feature.
 
