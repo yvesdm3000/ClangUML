@@ -19,7 +19,8 @@ typedef enum _ClangUML_classRelation
 {
     ClangUML_classRelation_extension,
     ClangUML_classRelation_composition,
-    ClangUML_classRelation_aggregation
+    ClangUML_classRelation_aggregation,
+    ClangUML_classRelation_association
 }ClangUML_classRelation;
 
 typedef enum _ClangUML_visibility

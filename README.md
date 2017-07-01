@@ -16,10 +16,14 @@ Author: Yves De Muyter (yves@alfavisio.be)
 - gcc 4.8 (no other had been tested yet)
 
 ## TODO
-- Aggregation
-- STL storage types
+- STL storage types like std::list, std::vector, std::uniqie_ptr, std::shared_ptr
 - Custom storage types that should be treated as list or pointer
+- Abstract classes (class with pure virtual functions)
+- Interfaces (class with all pure virtual functions)
 - Command line arguments to include or filter out classes
 - Command line arguments to enable/disable various options like arrow direction, namespaces
 - Find some nice way to integrate with PlantUML. I currently use its watchfolder feature.
+
+## TODO far future
+- Detect design patterns and offer to hide patterns under a <<stereotype>>
 

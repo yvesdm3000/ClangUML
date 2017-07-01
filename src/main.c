@@ -37,39 +37,50 @@ static void classBegin(void* user_data, CXCursor cursor, ClangUML_classType clas
         break;
     }
 }
+
 static void classEnd(void* user_data, CXCursor cursor)
 {
     struct uml_context* ctx = (struct uml_context*)user_data;
     fprintf(ctx->fd,"}\n");
 }
+
+static char visibilityChar(const ClangUML_visibility vis)
+{
+    switch(vis)
+    {
+    case ClangUML_visibility_public:
+        return '+';
+    case ClangUML_visibility_protected:
+        return '#';
+    case ClangUML_visibility_private:
+        return '-';
+    }
+    return ' ';
+}
+
 static void methodEnter(void* user_data, CXCursor cursor, const ClangUML_visibility vis, const ClangUML_classifier cla)
 {
     struct uml_context* ctx = (struct uml_context*)user_data;
-    const char* methodName = clang_getCString(clang_getCursorDisplayName(cursor));
-    fprintf(ctx->fd,"    %s\n", methodName);
+    CXString displayName = clang_getCursorDisplayName(cursor);
+    const char* methodName = clang_getCString(displayName);
+    CXType resultType = clang_getCursorResultType(cursor);
+    CXString resultTypeDisplayName = clang_getTypeSpelling(resultType);
+    fprintf(ctx->fd,"    %c%s : %s\n", visibilityChar(vis), methodName, clang_getCString(resultTypeDisplayName));
+    clang_disposeString(displayName);
+    clang_disposeString(resultTypeDisplayName);
 }
 static void methodLeave(void* user_data, CXCursor cursor)
 {
     struct uml_context* ctx = (struct uml_context*)user_data;
 
 }
+
+
 static void field(void* user_data, CXCursor cursor, const char* fieldType, const ClangUML_visibility vis, const ClangUML_classifier cla )
 {
     struct uml_context* ctx = (struct uml_context*)user_data;
     CXString displayName = clang_getCursorDisplayName(cursor);
-    char visibilityType = '+';
-    switch(vis)
-    {
-    case ClangUML_visibility_public:
-        visibilityType = '+';
-        break;
-    case ClangUML_visibility_protected:
-        visibilityType = '#';
-        break;
-    case ClangUML_visibility_private:
-        visibilityType = '-';
-        break;
-    }
+    char visibilityType = visibilityChar(vis);
     fprintf(ctx->fd,"    %c%s : %s\n", visibilityType, clang_getCString(displayName), fieldType);
     clang_disposeString(displayName);
 }
@@ -87,6 +98,9 @@ static void relationship(void* user_data, CXCursor cursor, const char* other, Cl
         break;
     case ClangUML_classRelation_aggregation:
         fprintf(ctx->fd,"%s o-- %s\n", clang_getCString(displayName), other);
+        break;
+    case ClangUML_classRelation_association:
+        fprintf(ctx->fd,"%s --> %s\n", clang_getCString(displayName), other);
         break;
     }
     clang_disposeString(displayName);

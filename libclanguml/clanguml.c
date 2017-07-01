@@ -242,12 +242,35 @@ static enum CXChildVisitResult ASTVisitor(CXCursor cursor, CXCursor parent, CXCl
             clang_disposeString(fieldType);
         }
         {
+            ClangUML_classRelation classRelation = ClangUML_classRelation_composition;
             CXType t = clang_getCursorType(cursor);
-            if ( t.kind == CXType_Record)
+            while(1)
             {
-                CXString displayName = clang_getTypeSpelling(clang_getCursorType(cursor));
-                ASTCursorRelationship_add(ctx, clang_getCString(displayName), ClangUML_classRelation_composition);
-                clang_disposeString(displayName);
+                if (t.kind == CXType_Record)
+                {
+                    CXString displayName = clang_getTypeSpelling(t);
+                    ASTCursorRelationship_add(ctx, clang_getCString(displayName), classRelation);
+                    clang_disposeString(displayName);
+                }
+                else if (t.kind == CXType_Pointer)
+                {
+                    classRelation = ClangUML_classRelation_aggregation;
+                    t = clang_getPointeeType(t);
+                    continue;
+                }
+                else if (t.kind == CXType_LValueReference)
+                {
+                    classRelation = ClangUML_classRelation_aggregation;
+                    t = clang_getPointeeType(t);
+                    continue;
+                }
+                else if (t.kind == CXType_RValueReference)
+                {
+                    classRelation = ClangUML_classRelation_association;
+                    t = clang_getPointeeType(t);
+                    continue;
+                }
+                break;
             }
         }
         ret = CXChildVisit_Continue;
@@ -321,7 +344,7 @@ static enum CXChildVisitResult ASTVisitor(CXCursor cursor, CXCursor parent, CXCl
 #endif
         if(ctx->clangUML->methodEnter)
         {
-            ctx->clangUML->methodEnter(ctx->user_data, cursor, ClangUML_visibility_public, ClangUML_classifier_normal);
+            ctx->clangUML->methodEnter(ctx->user_data, cursor, ctx->currentVisibility, ClangUML_classifier_normal);
         }
         clang_visitChildren(cursor,ASTVisitor, client_data);
         if(ctx->clangUML->methodLeave)
